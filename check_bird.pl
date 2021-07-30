@@ -42,9 +42,9 @@ my $info = "";
 
 if ( $plugin->opts->peer =~ /(^[\w\d\_\-]+$)/) {
     $peer2check = $1;
-    print "DEBUG: $birdc show protocols $peer2check\n" if $plugin->opts->debug;
+    print "DEBUG: $birdc show protocols all $peer2check\n" if $plugin->opts->debug;
     # see the details for the peer provider
-    my @peer = qx/$birdc show protocols $peer2check/;
+    my @peer = qx/$birdc show protocols all $peer2check/;
     print Dumper \@peer if $plugin->opts->debug;
     # remove headers from command line
     #shift @peer for 1..2;
@@ -57,17 +57,13 @@ if ( $plugin->opts->peer =~ /(^[\w\d\_\-]+$)/) {
             $info = $3;
             if ($status eq "up") {
                 $output = "$peer2check $status since $2 with connection $info";
-                print "DEBUG: $birdc show route protocol $peer2check count\n" if $plugin->opts->debug;
-                my @routes = qx/$birdc show route protocol $peer2check count/;
-                # remove first line 
-                #shift @routes;
-                print Dumper \@routes if $plugin->opts->debug;
 
-                $routes[1] =~ m/^(\d+) of/;
+                print Dumper $peer[37] if $plugin->opts->debug;
+                $peer[37] =~ m/Routes:\s+(\d+) imported,\s+(\d+) exported,\s+(\d+) preferred/;
                 # check if i've more than one route...
                 if ($1 >= 1) {
                     print "DEBUG: ROUTES: $1\n"if $plugin->opts->debug;
-                    $output .= " routes: $1|'established_routes'=$1;;;0";
+                    $output .= " routes: $1 exported:$2 preferred: $3|'established_routes'=$1;;;0 'exported_routes'=$2;;;0 'preferred_routes'=$3;;;0";
                     $plugin->nagios_exit(OK, "$output");
 		} elsif ($plugin->opts->routeserver) {
 		    $plugin->nagios_exit(OK, "$output");
