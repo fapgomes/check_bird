@@ -48,25 +48,32 @@ if ( $plugin->opts->peer =~ /(^[\w\d\_\-]+$)/) {
     print Dumper \@peer if $plugin->opts->debug;
     # remove headers from command line
     #shift @peer for 1..2;
-    # NOS_ipv4   BGP        ---        up     2020-09-22    Established
     if (defined($peer[2])) {
-        print "DEBUG : $peer[2]\n" if $plugin->opts->debug;
-        if ($peer[2] =~ m/^[\w\d\_\-]+\s+BGP\s+---\s+(\w+)\s+([\d+\-\.\:]+)\s+(\w+)/) {
+        print "DEBUG in the peer if : $peer[2]\n" if $plugin->opts->debug;
+	# NOS_ipv4   BGP        ---        up     2020-09-22    Established
+	# PCH1_2001_7f8_a_1__55 BGP        ---        down   11:21:54.010
+        if ($peer[2] =~ m/^[\w\d\_\-]+\s+BGP\s+---\s+(\w+)\s+([\d+\-\.\:]+)(.*)/) {
             $status = $1;
             $since = $2;
-            $info = $3;
+            if ($3 ne "  ") {
+                $info = $3;
+            } else {
+                $info = "down";
+            }
+
             if ($status eq "up") {
                 $output = "$peer2check $status since $2 with connection $info";
 
-                print Dumper $peer[37] if $plugin->opts->debug;
-                $peer[37] =~ m/Routes:\s+(\d+) imported,\s+(\d+) exported,\s+(\d+) preferred/;
+                my $string = join( ',', @peer );
+                print "STRING: $string\n" if $plugin->opts->debug;
+                $string =~ m/Routes:\s+(\d+) imported,\s+(\d+) exported,\s+(\d+) preferred/;
                 # check if i've more than one route...
                 if ($1 >= 1) {
-                    print "DEBUG: ROUTES: $1\n"if $plugin->opts->debug;
+                    print "DEBUG in the routes if : ROUTES: $1\n"if $plugin->opts->debug;
                     $output .= " routes: $1 exported:$2 preferred: $3|'established_routes'=$1;;;0 'exported_routes'=$2;;;0 'preferred_routes'=$3;;;0";
                     $plugin->nagios_exit(OK, "$output");
-		} elsif ($plugin->opts->routeserver) {
-		    $plugin->nagios_exit(OK, "$output");
+                } elsif ($plugin->opts->routeserver) {
+                    $plugin->nagios_exit(OK, "$output");
                 } else {
                     $plugin->nagios_exit(WARNING, "To few routes for this provider: $1");
                 }
